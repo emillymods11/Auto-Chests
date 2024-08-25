@@ -1,0 +1,100 @@
+-- LocalScript dentro de StarterGui o en el mismo lugar donde creas el ScreenGui
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
+
+local TARGET_PLACE_ID = 2753915549 -- El PlaceId del juego en el que el script debe ejecutarse
+local CURRENT_PLACE_ID = game.PlaceId
+
+-- Verifica si el script está en el lugar correcto
+if CURRENT_PLACE_ID ~= TARGET_PLACE_ID then
+    -- Si no está en el lugar correcto, desactiva el script
+    script:Destroy()
+    return
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local imageLabel = Instance.new("ImageLabel")
+imageLabel.Parent = screenGui
+imageLabel.Size = UDim2.new(0.5, 0, 0.5, 0) -- Ajusta el tamaño según lo necesario
+imageLabel.Position = UDim2.new(0.25, 0, 0.25, 0) -- Ajusta la posición según lo necesario
+imageLabel.Image = "rbxassetid://84691739864140" -- Reemplaza con el ID de tu imagen
+imageLabel.ImageTransparency = 1 -- Comienza como invisible
+
+-- Tween para la animación de aparición
+local tweenInfo = TweenInfo.new(
+    3, -- Duración de la animación en segundos
+    Enum.EasingStyle.Quad, -- Estilo de easing
+    Enum.EasingDirection.InOut, -- Dirección de easing
+    0, -- Número de repeticiones
+    false, -- Reversa (no repetir al final)
+    0 -- Retraso antes de comenzar
+)
+
+local tweenGoal = {
+    ImageTransparency = 0, -- Transición a completamente visible
+    Size = UDim2.new(0.5, 0, 0.5, 0) -- Tamaño final de la imagen
+}
+
+local tween = TweenService:Create(imageLabel, tweenInfo, tweenGoal)
+
+-- Función para verificar si el punto está dentro de la imagen
+local function isPointInImage(point, imageLabel)
+    local imageLabelSize = imageLabel.AbsoluteSize
+    local imageLabelPos = imageLabel.AbsolutePosition
+    return point.X >= imageLabelPos.X and point.X <= imageLabelPos.X + imageLabelSize.X
+        and point.Y >= imageLabelPos.Y and point.Y <= imageLabelPos.Y + imageLabelSize.Y
+end
+
+-- Variables para arrastrar
+local dragging = false
+local dragStart
+local startPos
+
+-- Función para comenzar el arrastre
+local function onInputBegan(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        local inputPos = input.Position
+        if isPointInImage(inputPos, imageLabel) then
+            dragging = true
+            dragStart = input.Position
+            startPos = imageLabel.Position
+        end
+    end
+end
+
+-- Función para actualizar la posición durante el arrastre
+local function onInputChanged(input)
+    if dragging then
+        local inputPos = input.Position
+        local delta = inputPos - dragStart
+        imageLabel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end
+
+-- Función para finalizar el arrastre
+local function onInputEnded(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+        local inputPos = input.Position
+        -- Verificar si el click fue dentro de la imagen y abrir el enlace
+        if isPointInImage(inputPos, imageLabel) then
+            -- Abrir el enlace en el navegador
+            pcall(function()
+                GuiService:OpenBrowserWindow("https://www.example.com") -- Reemplaza con el enlace que desees abrir
+            end)
+        end
+    end
+end
+
+-- Iniciar la animación de la imagen
+tween:Play()
+
+-- Conectar las funciones a los eventos de entrada
+UserInputService.InputBegan:Connect(onInputBegan)
+UserInputService.InputChanged:Connect(onInputChanged)
+UserInputService.InputEnded:Connect(onInputEnded)
